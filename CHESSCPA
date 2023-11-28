@@ -1,0 +1,87 @@
+!pip install python-chess 
+
+import chess
+import chess.svg
+import random
+
+def evaluate_board(board):
+    if board.is_checkmate():
+        if board.turn:
+            return -9999
+        else:
+            return 9999
+    if board.is_stalemate() or board.is_insufficient_material():
+        return 0
+
+    # Avaliação simples baseada na contagem de material
+    piece_values = {'P': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9, 'K': 0}
+    eval = 0
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece:
+            piece_value = piece_values[piece.symbol().upper()]
+            if piece.color == chess.WHITE:
+                eval += piece_value
+            else:
+                eval -= piece_value
+    return eval
+
+def minimax(depth, board, alpha, beta, maximizing_player):
+    if depth == 0 or board.is_game_over():
+        return evaluate_board(board)
+
+    if maximizing_player:
+        max_eval = -float('inf')
+        for move in board.legal_moves:
+            board.push(move)
+            eval = minimax(depth - 1, board, alpha, beta, False)
+            board.pop()
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        return max_eval
+    else:
+        min_eval = float('inf')
+        for move in board.legal_moves:
+            board.push(move)
+            eval = minimax(depth - 1, board, alpha, beta, True)
+            board.pop()
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        return min_eval
+
+def find_best_move(board, depth):
+    best_move = None
+    best_value = -float('inf')
+    for move in board.legal_moves:
+        board.push(move)
+        board_value = minimax(depth - 1, board, -float('inf'), float('inf'), False)
+        board.pop()
+        if board_value > best_value:
+            best_value = board_value
+            best_move = move
+    return best_move
+
+def play_chess():
+    board = chess.Board()
+
+    while not board.is_game_over(claim_draw=True):
+        print(board)
+        if board.turn == chess.WHITE:
+            move = input("Your move: ")
+            while move not in [m.uci() for m in board.legal_moves]:
+                print("Invalid move. Try again.")
+                move = input("Your move: ")
+            board.push_uci(move)
+        else:
+            print("AI is thinking...")
+            move = find_best_move(board, 3)  # A profundidade pode ser ajustada para aumentar a dificuldade
+            board.push(move)
+            print("AI move:", move.uci())
+
+    print("Game over. Result:", board.result())
+
+play_chess()
